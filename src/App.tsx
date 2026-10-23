@@ -1,14 +1,11 @@
 import { useState } from 'react'
 import ApplicationHeader from './components/ApplicationHeader'
 import ApplicationCard from './components/ApplicationCard'
+import ApplicationForm from './components/ApplicationForm'
 import type {Application} from './types'
 import './App.css'
 
-type Status = Application["status"]
-
-function isValidStatus(value:string): value is Status{
-  return ["Applied","Rejected","Interviewing","Offer"].includes(value)
-}
+type ApplicationInfo = Omit<Application,"id">
 
 const sourceApplications:Application[] = [
   {id:'Company1',company:"Company1",position:"Associate Software Engineer",status:"Applied",date:"2026-10-21"},
@@ -19,25 +16,21 @@ const sourceApplications:Application[] = [
 
 function App() {
   const [applications,updateApplications] = useState<Application[]>(sourceApplications)
-  const [company,updateCompany] = useState<string>('')
-  const [position,updatePosition] = useState<string>('')
-  const [status,updateStatus] = useState<"Applied" | "Rejected" | "Interviewing" | "Offer">("Applied")
-  const [date,updateDate] = useState<string>('')
 
   const [inputErrorMessage,updateInputErrorMessage] = useState<string>('')
 
   
   function isValidApplication(application:Application):boolean{
     let valid = true
-    if (company.trim().length == 0){
+    if (application.company.trim().length == 0){
       updateInputErrorMessage('Company name must be atleast 1 character long.')
       valid = false
     }
-    else if(position.trim().length == 0){
+    else if(application.position.trim().length == 0){
       updateInputErrorMessage('Position must be atleast 1 character long.')
       valid = false
     }
-    else if(date.trim().length == 0){
+    else if(application.date.trim().length == 0){
       updateInputErrorMessage('Please enter an application date.')
       valid = false
     }
@@ -45,40 +38,23 @@ function App() {
     return valid
   }
 
-  function addApplication(){
+  function addApplication(application:ApplicationInfo){
     const id:string = crypto.randomUUID()
-    const newApp:Application = {id:id,company:company.trim(),position:position.trim(),status:status,date:date}
+    const newApp:Application = {
+      id:id,
+      company:application.company.trim(),
+      position:application.position.trim(),
+      status:application.status,
+      date:application.date
+    }
     if(isValidApplication(newApp)){
       updateApplications(prevApplications => [...prevApplications,newApp])
       updateInputErrorMessage('')
-      updateCompany('')
-      updatePosition('')
-      updateStatus('Applied')
-      updateDate('')
     }
   }
 
   function removeApplication(id:string){
     updateApplications(prevApplications => prevApplications.filter(app => app.id !== id))
-  }
-
-  function updateField(field:string,value:string){
-    switch (field){
-      case 'company':
-        updateCompany(value)
-        break
-      case 'position':
-        updatePosition(value)
-        break
-      case 'status':
-        if(isValidStatus(value)){
-            updateStatus(value)
-        }
-        break
-      case 'date':
-        updateDate(value)
-        break
-    }
   }
   return(
     <div>
@@ -89,31 +65,8 @@ function App() {
           <button onClick={() => removeApplication(application.id)}>Remove</button>
         </div>
       )))}
-      <div>
-        <label>
-          Company
-          <input name = 'company' value={company} placeholder='Enter company here...' onChange={(e) => updateField(e.target.name,e.target.value)}/>
-        </label>
-        <label>
-          Position
-          <input name = 'position' value={position} placeholder='Enter position here...' onChange={(e) => updateField(e.target.name,e.target.value)}/>
-        </label>
-        <label>
-          Status
-          <select name='status' value={status} onChange={(e) => updateField(e.target.name,e.target.value)}>
-            <option value = 'Applied'>Applied</option>
-            <option value = 'Rejected'>Rejected</option>
-            <option value = 'Interviewing'>Interviewing</option>
-            <option value = 'Offer'>Offer</option>
-          </select>
-        </label>
-        <label>
-          Date
-          <input type='date' name = 'date' value={date} onChange={(e) => updateField(e.target.name,e.target.value)}/>
-        </label>
-        <button onClick={()=>addApplication()}>Add</button>
-        {inputErrorMessage != '' && <p color='red'>{inputErrorMessage}</p>}
-      </div>
+      <ApplicationForm addApplication={addApplication}/>
+      {inputErrorMessage != '' && <p color='red'>{inputErrorMessage}</p>}
     </div>
 
   )
