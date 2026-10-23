@@ -17,27 +17,6 @@ const sourceApplications:Application[] = [
 function App() {
   const [applications,updateApplications] = useState<Application[]>(sourceApplications)
 
-  const [inputErrorMessage,updateInputErrorMessage] = useState<string>('')
-
-  
-  function isValidApplication(application:Application):boolean{
-    let valid = true
-    if (application.company.trim().length == 0){
-      updateInputErrorMessage('Company name must be atleast 1 character long.')
-      valid = false
-    }
-    else if(application.position.trim().length == 0){
-      updateInputErrorMessage('Position must be atleast 1 character long.')
-      valid = false
-    }
-    else if(application.date.trim().length == 0){
-      updateInputErrorMessage('Please enter an application date.')
-      valid = false
-    }
-
-    return valid
-  }
-
   function addApplication(application:ApplicationInfo){
     const id:string = crypto.randomUUID()
     const newApp:Application = {
@@ -47,10 +26,9 @@ function App() {
       status:application.status,
       date:application.date
     }
-    if(isValidApplication(newApp)){
-      updateApplications(prevApplications => [...prevApplications,newApp])
-      updateInputErrorMessage('')
-    }
+    
+    updateApplications(prevApplications => [...prevApplications,newApp])
+      
   }
 
   function removeApplication(id:string){
@@ -66,7 +44,6 @@ function App() {
         </div>
       )))}
       <ApplicationForm addApplication={addApplication}/>
-      {inputErrorMessage != '' && <p color='red'>{inputErrorMessage}</p>}
     </div>
 
   )

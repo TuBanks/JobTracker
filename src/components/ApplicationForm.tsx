@@ -17,6 +17,25 @@ function ApplicationForm({addApplication}:ApplicationProps){
     const [position,updatePosition] = useState<string>('')
     const [status,updateStatus] = useState<"Applied" | "Rejected" | "Interviewing" | "Offer">("Applied")
     const [date,updateDate] = useState<string>('')
+    const [inputErrorMessage,updateInputErrorMessage] = useState<string>('')
+
+    function isValidApplicationInfo(application:ApplicationInfo):boolean{
+        let valid = true
+        if (application.company.trim().length == 0){
+        updateInputErrorMessage('Company name must be atleast 1 character long.')
+        valid = false
+        }
+        else if(application.position.trim().length == 0){
+        updateInputErrorMessage('Position must be atleast 1 character long.')
+        valid = false
+        }
+        else if(application.date.trim().length == 0){
+        updateInputErrorMessage('Please enter an application date.')
+        valid = false
+        }
+
+        return valid
+    }
 
     function updateField(field:string,value:string){
         switch (field){
@@ -44,11 +63,14 @@ function ApplicationForm({addApplication}:ApplicationProps){
             status:status,
             date:date
         }
-        addApplication(applicationInfo)
-        updateCompany('')
-        updatePosition('')
-        updateStatus('Applied')
-        updateDate('')
+        if(isValidApplicationInfo(applicationInfo)){
+            updateInputErrorMessage('')
+            addApplication(applicationInfo)
+            updateCompany('')
+            updatePosition('')
+            updateStatus('Applied')
+            updateDate('')
+        }
     }
 
     return(
@@ -75,6 +97,7 @@ function ApplicationForm({addApplication}:ApplicationProps){
                 <input type='date' name = 'date' value={date} onChange={(e) => updateField(e.target.name,e.target.value)}/>
             </label>
             <button onClick={()=>submitForm()}>Add</button>
+            {inputErrorMessage != '' && <p color='red'>{inputErrorMessage}</p>}
         </div>
     )
 }
