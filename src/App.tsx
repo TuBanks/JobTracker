@@ -24,10 +24,38 @@ function App() {
   const [status,updateStatus] = useState<"Applied" | "Rejected" | "Interviewing" | "Offer">("Applied")
   const [date,updateDate] = useState<string>('')
 
+  const [inputErrorMessage,updateInputErrorMessage] = useState<string>('')
+
+  
+  function isValidApplication(application:Application):boolean{
+    let valid = true
+    if (company.trim().length == 0){
+      updateInputErrorMessage('Company name must be atleast 1 character long.')
+      valid = false
+    }
+    else if(position.trim().length == 0){
+      updateInputErrorMessage('Position must be atleast 1 character long.')
+      valid = false
+    }
+    else if(date.trim().length == 0){
+      updateInputErrorMessage('Please enter an application date.')
+      valid = false
+    }
+
+    return valid
+  }
+
   function addApplication(){
     const id:string = crypto.randomUUID()
-    const newApp:Application = {id:id,company:company,position:position,status:status,date:date}
-    updateApplications(prevApplications => [...prevApplications,newApp])
+    const newApp:Application = {id:id,company:company.trim(),position:position.trim(),status:status,date:date}
+    if(isValidApplication(newApp)){
+      updateApplications(prevApplications => [...prevApplications,newApp])
+      updateInputErrorMessage('')
+      updateCompany('')
+      updatePosition('')
+      updateStatus('Applied')
+      updateDate('')
+    }
   }
 
   function removeApplication(id:string){
@@ -84,6 +112,7 @@ function App() {
           <input type='date' name = 'date' value={date} onChange={(e) => updateField(e.target.name,e.target.value)}/>
         </label>
         <button onClick={()=>addApplication()}>Add</button>
+        {inputErrorMessage != '' && <p color='red'>{inputErrorMessage}</p>}
       </div>
     </div>
 
