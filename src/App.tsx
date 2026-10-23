@@ -25,9 +25,9 @@ function App() {
   const [date,updateDate] = useState<string>('')
 
   function addApplication(){
-    const id:string = company.concat('',position)
+    const id:string = crypto.randomUUID()
     const newApp:Application = {id:id,company:company,position:position,status:status,date:date}
-    updateApplications([...applications,newApp])
+    updateApplications(prevApplications => [...prevApplications,newApp])
   }
 
   function removeApplication(id:string){
@@ -56,8 +56,8 @@ function App() {
     <div>
       <ApplicationHeader/>
       {applications.map(((application) => (
-        <div>
-          <ApplicationCard key={application.id} company={application.company} position={application.position} status={application.status} date={application.date}/>
+        <div key={application.id}>
+          <ApplicationCard company={application.company} position={application.position} status={application.status} date={application.date}/>
           <button onClick={() => removeApplication(application.id)}>Remove</button>
         </div>
       )))}
