@@ -1,21 +1,49 @@
 import { useState } from 'react'
+import { useEffect } from 'react'
 import ApplicationHeader from './components/ApplicationHeader'
 import ApplicationCard from './components/ApplicationCard'
 import ApplicationForm from './components/ApplicationForm'
-import type {Application} from './types'
+import type {Application} from '../shared/types'
 import './App.css'
 
 type ApplicationInfo = Omit<Application,"id">
 
-const sourceApplications:Application[] = [
-  {id:'Company1',company:"Company1",position:"Associate Software Engineer",status:"Applied",date:"2026-10-21"},
-  {id:'Company2',company:"Company2",position:"Entry-Level Software Engineer",status:"Applied",date:"2026-10-22"},
-  {id:'Company3',company:"Company3",position:"Junior Software Engineer",status:"Applied",date:"2026-10-23"},
-  {id:'Company4',company:"Company4",position:"Associate AI Engineer",status:"Applied",date:"2026-10-23"},
-]
+async function fetchApplications(): Promise<Application[] | undefined> {
+  try{
+    const response = await fetch("http://localhost:3000/api/applications")
+
+    if (!response.ok){
+      throw new Error(`HTTP error: ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    if(Array.isArray(data)){
+      return data
+    }
+  }
+  catch(error){
+    console.error("Failed to fetch applications", error)
+    throw error
+  }
+}
+
 
 function App() {
-  const [applications,updateApplications] = useState<Application[]>(sourceApplications)
+  const [applications,updateApplications] = useState<Application[]>([])
+
+  useEffect(()=>{
+    async function fetchAndUpdateApplications(){
+      const fetchedApplications = await fetchApplications()
+      if (fetchedApplications != undefined){
+        updateApplications(fetchedApplications)
+      }
+
+    }
+
+    fetchAndUpdateApplications()
+    
+  },[])
 
   function addApplication(application:ApplicationInfo){
     const id:string = crypto.randomUUID()

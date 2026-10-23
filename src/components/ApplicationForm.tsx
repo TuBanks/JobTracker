@@ -1,5 +1,5 @@
 import { useState } from "react"
-import type { Application } from "../types"
+import type { Application } from "../../shared/types"
 
 type ApplicationInfo = Omit<Application,"id">
 type Status = Application["status"]
