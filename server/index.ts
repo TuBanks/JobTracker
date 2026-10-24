@@ -4,6 +4,18 @@ import {success, z} from "zod"
 
 import type {Application} from '../shared/types'
 
+const applicationSchema = z.object({
+  company: z.string().trim().min(1),
+  position: z.string().trim().min(1),
+  status: z.enum([
+    "Applied",
+    "Interviewing",
+    "Rejected",
+    "Offer"
+  ]),
+  date: z.iso.date(),
+})
+
 const app = express()
 app.use(express.json())
 
@@ -24,63 +36,57 @@ app.get("/api/applications", (req,res) => {
 })
 
 app.post("/api/add-application", (req,res) =>{
-  const applicationSchema = z.object({
-    company: z.string(),
-    position: z.string(),
-    status: z.enum([
-      "Applied",
-      "Interviewing",
-      "Rejected",
-      "Offer"
-    ]),
-    date: z.iso.date(),
-  })
-
   const result = applicationSchema.safeParse(req.body)
   if(result.success){
-    if (req.body.company.trim().length > 0 && req.body.position.trim().length > 0){
-      const id:string = crypto.randomUUID()
-      const newApplication:Application = {
-        id:id,
-        company:req.body.company,
-        position:req.body.position,
-        status:req.body.status,
-        date:req.body.date
-      }
-      sourceApplications.push(newApplication)
-      console.log("Application added")
-      console.log(sourceApplications)
-      res.status(201).json({success:true,id:id})
+    const data = result.data
+    const id:string = crypto.randomUUID()
+    const newApplication:Application = {
+      id:id,
+      company:data.company,
+      position:data.position,
+      status:data.status,
+      date:data.date
     }
-    else{
-      console.log("Application invalid")
-      res.status(200).json({success:false})
-    }
+    
+    sourceApplications.push(newApplication)
+    console.log("Application added")
+    console.log(sourceApplications)
+    res.status(201).json({success:true,application:newApplication})
+    
   }
   else{
     console.log("Application invalid")
-    res.status(200).json({success:false})
+    res.status(400).json({success:false})
 
   }
-    
-  console.log("Attempted to add application.")
   
 })
 
-app.post("/api/remove-application",(req,res) =>{
+app.delete("/api/remove-application",(req,res) =>{
   const result = z.object({
     id: z.string()
   }).safeParse(req.body)
   if(result.success){
-    sourceApplications = sourceApplications.filter(item => (
-      item.id !== req.body.id
+    const data = result.data
+    const idFound = sourceApplications.find(item => (
+      item.id == data.id
+    ))
+    if(idFound == undefined){
+      console.log("Application doesn't exist")
+      res.status(400).json({success:false})
+    }
+    else{
+      sourceApplications = sourceApplications.filter(item => (
+      item.id !== data.id
     ))
     console.log("Application removed")
-    res.status(201).json({success:true})
+    res.status(200).json({success:true})
+    }
+
   }
   else{
     console.log("Failed to remove application")
-    res.status(200).json({success:false})
+    res.status(400).json({success:false})
   }
 })
 
