@@ -46,21 +46,66 @@ function App() {
   },[])
 
   function addApplication(application:ApplicationInfo){
-    const id:string = crypto.randomUUID()
-    const newApp:Application = {
-      id:id,
+    const newAppInfo:ApplicationInfo = {
       company:application.company.trim(),
       position:application.position.trim(),
       status:application.status,
       date:application.date
     }
-    
-    updateApplications(prevApplications => [...prevApplications,newApp])
+    async function postApplication(appInfo:ApplicationInfo){
+      const response = await fetch("http://localhost:3000/api/add-application",{
+        method: "POST",
+        headers:{
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(appInfo)
+      })
+
+      if (!response.ok){
+        throw new Error(`HTTP error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if(response.status == 201 && typeof(data.id) == "string"){
+        const newApp:Application = {
+          id:data.id,
+          company:appInfo.company,
+          position:appInfo.position,
+          status:appInfo.status,
+          date:appInfo.date,
+        }
+        updateApplications(prevApplications => [...prevApplications,newApp])
+      }
+    }
+
+    postApplication(newAppInfo)
       
   }
 
   function removeApplication(id:string){
-    updateApplications(prevApplications => prevApplications.filter(app => app.id !== id))
+    async function postRemoveApplication(id:string){
+      const response = await fetch("http://localhost:3000/api/remove-application",{
+        method:"POST",
+        headers:{
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({id:id}),
+      }
+      )
+
+      if(!response.ok){
+        throw new Error(`HTTP error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if(response.status == 201){
+        updateApplications(prevApplications => prevApplications.filter(app => app.id !== id))
+      }
+    }
+
+    postRemoveApplication(id)
   }
   return(
     <div>
