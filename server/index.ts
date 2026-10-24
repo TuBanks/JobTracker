@@ -73,7 +73,7 @@ app.delete("/api/remove-application",(req,res) =>{
     ))
     if(idFound == undefined){
       console.log("Application doesn't exist")
-      res.status(400).json({success:false})
+      res.status(404).json({success:false})
     }
     else{
       sourceApplications = sourceApplications.filter(item => (

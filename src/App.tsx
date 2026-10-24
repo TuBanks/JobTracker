@@ -24,7 +24,6 @@ async function fetchApplications(): Promise<Application[] | undefined> {
   }
   catch(error){
     console.error("Failed to fetch applications", error)
-    throw error
   }
 }
 
@@ -74,7 +73,6 @@ function App() {
         }
       }
       catch(error){
-        console.error("Failed to add application", error)
         throw error
       }
     }
@@ -108,7 +106,6 @@ function App() {
       }
       catch(error){
         console.error("Failed to remove application", error)
-        throw error
       }
     }
 
