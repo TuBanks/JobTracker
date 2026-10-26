@@ -5,3 +5,5 @@ export interface Application{
     status: "Applied" | "Rejected" | "Interviewing" | "Offer",
     date:string,
 }
+
+export type ApplicationInfo = Omit<Application,"id">

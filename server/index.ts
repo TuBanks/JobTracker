@@ -1,8 +1,22 @@
 import express from 'express'
 import cors from "cors"
 import {success, z} from "zod"
+import {Pool, PoolConfig} from "pg"
 
-import type {Application} from '../shared/types'
+import type {Application,ApplicationInfo} from '../shared/types'
+import { insertApplication,deleteApplication,selectAllApplications} from './db-operations'
+
+
+const config:PoolConfig = {
+  host: "localhost",
+  port: 5432,
+  database: "jobtracker",
+  user: "tucker",
+  max: 5,
+  connectionTimeoutMillis: 5000
+}
+
+const pool = new Pool(config)
 
 const applicationSchema = z.object({
   company: z.string().trim().min(1),
@@ -23,35 +37,48 @@ app.use(cors({
   origin:"http://localhost:5173"
 }))
 
-let sourceApplications:Application[] = [
-  {id:'Company1',company:"Company1",position:"Associate Software Engineer",status:"Applied",date:"2026-10-21"},
-  {id:'Company2',company:"Company2",position:"Entry-Level Software Engineer",status:"Applied",date:"2026-10-22"},
-  {id:'Company3',company:"Company3",position:"Junior Software Engineer",status:"Applied",date:"2026-10-23"},
-  {id:'Company4',company:"Company4",position:"Associate AI Engineer",status:"Applied",date:"2026-10-23"},
-]
-
 app.get("/api/applications", (req,res) => {
-    console.log("Attempted to fetch applications")
-    res.json(sourceApplications)
+    async function getAllApplications(pool:Pool){
+      try{
+        const applications = await selectAllApplications(pool)
+        if(applications !== undefined){
+          res.json(applications)
+        }
+        else{
+          res.status(504)
+        }
+      }
+      catch(error){
+        console.error("Unexpected database error:",error)
+      }
+    }
+
+    getAllApplications(pool)
 })
 
 app.post("/api/add-application", (req,res) =>{
+  async function addApplication(pool:Pool,info:ApplicationInfo){
+    try{
+      const application = await insertApplication(pool,info)
+      res.status(201).json({success:true,application:application})
+    }
+    catch(error){
+      console.error("Unexpected database error:",error)
+      res.status(400).json({success:false})
+    }
+  }
   const result = applicationSchema.safeParse(req.body)
   if(result.success){
     const data = result.data
     const id:string = crypto.randomUUID()
-    const newApplication:Application = {
-      id:id,
+    const newApplicationInfo:ApplicationInfo = {
       company:data.company,
       position:data.position,
       status:data.status,
       date:data.date
     }
     
-    sourceApplications.push(newApplication)
-    console.log("Application added")
-    console.log(sourceApplications)
-    res.status(201).json({success:true,application:newApplication})
+    addApplication(pool,newApplicationInfo)
     
   }
   else{
@@ -63,25 +90,33 @@ app.post("/api/add-application", (req,res) =>{
 })
 
 app.delete("/api/remove-application",(req,res) =>{
+  async function removeApplication(pool:Pool,id:string){
+    try{
+      const deletedApplication = await deleteApplication(pool,id)
+
+      if(deletedApplication !== undefined){
+        console.log(deletedApplication)
+        res.status(200).json({
+          success:true,
+          id: deletedApplication.id
+        })
+      }
+      else{
+        res.status(404)
+      }
+    }
+    catch(error){
+      console.error("Unexpected database error:",error)
+    }
+  }
   const result = z.object({
     id: z.string()
   }).safeParse(req.body)
   if(result.success){
     const data = result.data
-    const idFound = sourceApplications.find(item => (
-      item.id == data.id
-    ))
-    if(idFound == undefined){
-      console.log("Application doesn't exist")
-      res.status(404).json({success:false})
-    }
-    else{
-      sourceApplications = sourceApplications.filter(item => (
-      item.id !== data.id
-    ))
-    console.log("Application removed")
-    res.status(200).json({success:true})
-    }
+    const id = data.id
+    
+    removeApplication(pool,id)
 
   }
   else{

@@ -4,9 +4,8 @@ import ApplicationHeader from './components/ApplicationHeader'
 import ApplicationCard from './components/ApplicationCard'
 import ApplicationForm from './components/ApplicationForm'
 import type {Application} from '../shared/types'
+import type { ApplicationInfo } from '../shared/types'
 import './App.css'
-
-type ApplicationInfo = Omit<Application,"id">
 
 async function fetchApplications(): Promise<Application[] | undefined> {
   try{
