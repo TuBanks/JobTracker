@@ -16,14 +16,20 @@ export async function createApplicationsTable(pool:Pool){
         console.log(result.rowCount)
     }
     catch(error){
-        console.error(error)
+        throw error
     }
 }
 
-export async function insertApplication(pool:Pool,info:ApplicationInfo): Promise<Application | undefined>{
+export async function insertApplication(pool:Pool,info:ApplicationInfo): Promise<Application>{
     try{
         const result = await pool.query(
-            "INSERT INTO applications (company,position,status,date) VALUES ($1,$2,$3,$4) RETURNING *;",
+            `INSERT INTO applications (company,position,status,date) VALUES ($1,$2,$3,$4) 
+            RETURNING
+            id,
+            company,
+            position,
+            status,
+            TO_CHAR(date, 'YYYY-MM-DD') as date;`,
             [info.company,info.position,info.status,info.date]
         )
 
@@ -38,13 +44,18 @@ export async function insertApplication(pool:Pool,info:ApplicationInfo): Promise
 export async function deleteApplication(pool:Pool,id:string): Promise<Application | undefined>{
     try{
         const result = await pool.query(
-            "DELETE FROM applications WHERE id = $1 RETURNING *",
+            `DELETE FROM applications WHERE id = $1 RETURNING 
+            id,
+            company,
+            position,
+            status,
+            TO_CHAR(date,'YYYY-MM-DD') as date;`,
             [id]
         )
 
         console.log(`Deleted ${result.rows[0]}`)
 
-        if(result.rowCount !== null){
+        if(result.rowCount !== null && result.rowCount !== 0){
             return result.rows[0]
         }
         else{
@@ -57,10 +68,17 @@ export async function deleteApplication(pool:Pool,id:string): Promise<Applicatio
     }
 }
 
-export async function selectAllApplications(pool:Pool): Promise<Application[] | undefined>{
+export async function selectAllApplications(pool:Pool): Promise<Application[]>{
     try{
         const result = await pool.query(
-            "SELECT * FROM applications"
+            `SELECT
+            id,
+            company,
+            position,
+            status,
+            TO_CHAR(date, 'YYYY-MM-DD') as date
+            FROM applications;
+            `
         )
 
         console.log(result.rows)

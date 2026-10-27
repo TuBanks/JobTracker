@@ -96,11 +96,7 @@ function App() {
           throw new Error(`HTTP error: ${response.status}`)
         }
 
-        const data = await response.json()
-
-        if(data.success){
-          updateApplications(prevApplications => prevApplications.filter(app => app.id !== id))
-        }
+        updateApplications(prevApplications => prevApplications.filter(app => app.id !== id))
 
       }
       catch(error){

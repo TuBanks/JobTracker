@@ -4,7 +4,7 @@ import {success, z} from "zod"
 import {Pool, PoolConfig} from "pg"
 
 import type {Application,ApplicationInfo} from '../shared/types'
-import { insertApplication,deleteApplication,selectAllApplications} from './db-operations'
+import { insertApplication,deleteApplication,selectAllApplications, createApplicationsTable} from './db-operations'
 
 
 const config:PoolConfig = {
@@ -37,40 +37,22 @@ app.use(cors({
   origin:"http://localhost:5173"
 }))
 
-app.get("/api/applications", (req,res) => {
-    async function getAllApplications(pool:Pool){
-      try{
-        const applications = await selectAllApplications(pool)
-        if(applications !== undefined){
-          res.json(applications)
-        }
-        else{
-          res.status(504)
-        }
-      }
-      catch(error){
-        console.error("Unexpected database error:",error)
-      }
+app.get("/api/applications", async (req,res) => {
+  try{
+    const applications = await selectAllApplications(pool)
+    res.status(200).json(applications)
     }
-
-    getAllApplications(pool)
+  catch(error){
+    console.error("Unexpected database error:",error)
+    res.status(500).send()
+  }
 })
 
-app.post("/api/add-application", (req,res) =>{
-  async function addApplication(pool:Pool,info:ApplicationInfo){
-    try{
-      const application = await insertApplication(pool,info)
-      res.status(201).json({success:true,application:application})
-    }
-    catch(error){
-      console.error("Unexpected database error:",error)
-      res.status(400).json({success:false})
-    }
-  }
+app.post("/api/add-application", async (req,res) =>{
+
   const result = applicationSchema.safeParse(req.body)
   if(result.success){
     const data = result.data
-    const id:string = crypto.randomUUID()
     const newApplicationInfo:ApplicationInfo = {
       company:data.company,
       position:data.position,
@@ -78,53 +60,73 @@ app.post("/api/add-application", (req,res) =>{
       date:data.date
     }
     
-    addApplication(pool,newApplicationInfo)
+    try{
+      const application = await insertApplication(pool,newApplicationInfo)
+      res.status(201).json({application:application})
+    }
+    catch(error){
+      console.error("Unexpected database error:",error)
+      res.status(500).send()
+    }
     
   }
   else{
     console.log("Application invalid")
-    res.status(400).json({success:false})
+    res.status(400).send()
 
   }
   
 })
 
-app.delete("/api/remove-application",(req,res) =>{
-  async function removeApplication(pool:Pool,id:string){
+app.delete("/api/remove-application",async (req,res) =>{
+  const result = z.object({
+    id: z.uuidv7()
+  }).safeParse(req.body)
+  if(result.success){
+    const data = result.data
+    const id = data.id
+    
     try{
       const deletedApplication = await deleteApplication(pool,id)
 
       if(deletedApplication !== undefined){
         console.log(deletedApplication)
         res.status(200).json({
-          success:true,
           id: deletedApplication.id
         })
       }
       else{
-        res.status(404)
+        res.status(404).send()
       }
     }
     catch(error){
       console.error("Unexpected database error:",error)
+      res.status(500).send()
     }
-  }
-  const result = z.object({
-    id: z.string()
-  }).safeParse(req.body)
-  if(result.success){
-    const data = result.data
-    const id = data.id
-    
-    removeApplication(pool,id)
 
   }
   else{
     console.log("Failed to remove application")
-    res.status(400).json({success:false})
+    res.status(400).send()
   }
 })
 
-app.listen(3000, ()=>{
-  console.log("Server listening on port 3000")
-})
+async function initServer(pool:Pool){
+  try{
+
+    const result = await createApplicationsTable(pool)
+    const test = await pool.query(
+      "SELECT * FROM applications LIMIT 1;"
+    )
+
+    app.listen(3000, ()=>{
+      console.log("Server listening on port 3000")
+    })
+  }
+  catch(error){
+    console.error("Server failed to start: database not in service",error)
+    await pool.end()
+  }
+}
+
+void initServer(pool)
