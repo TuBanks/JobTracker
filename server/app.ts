@@ -41,7 +41,7 @@ export function createApp(pool:Pool){
     app.get(`/api/applications/:id`,async (req,res) =>{
         const result = z.object({
             id:z.uuid()
-        }).safeParse(req.body)
+        }).safeParse(req.params)
         if(result.success){
             const data = result.data
             const id = data.id
@@ -101,8 +101,8 @@ export function createApp(pool:Pool){
 
     app.delete("/api/applications/:id",async (req,res) =>{
     const result = z.object({
-        id: z.uuidv7()
-    }).safeParse(req.body)
+        id: z.uuid()
+    }).safeParse(req.params)
     if(result.success){
         const data = result.data
         const id = data.id

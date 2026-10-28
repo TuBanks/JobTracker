@@ -27,7 +27,7 @@ afterEach(async ()=>{
         )
     }
     catch(error){
-        console.error("Failed to trunacte applications",error)
+        throw error
     }
 })
 afterAll(async ()=>{
@@ -155,33 +155,25 @@ describe("Test remove application route",()=>{
         })
 
         const id = addResponse.body.application.id
-        const deleteResponse = await request(app).delete(`/api/applications/:${id}`).send({
-            id:id
-        })
+        const deleteResponse = await request(app).delete(`/api/applications/${id}`)
 
         expect(deleteResponse.status).toBe(200)
         expect(deleteResponse.body.id).toEqual(id)
 
-        const getResponse = await request(app).get(`/api/applications/${id}`).send({
-            id:id
-        })
+        const getResponse = await request(app).get(`/api/applications/${id}`)
 
         expect(getResponse.status).toBe(404)
     })
 
     it("delete a non existing id",async()=>{
         const id = "01a18363-ecdd-7401-b66f-d4dc2c8ab72d"
-        const deleteResponse = await request(app).delete(`/api/applications/:${id}`).send({
-            id:id
-        })
+        const deleteResponse = await request(app).delete(`/api/applications/${id}`)
 
         expect(deleteResponse.status).toBe(404)
     })
     it("delete an invalid id format",async()=>{
         const id = "123"
-        const deleteResponse = await request(app).delete(`/api/applications/:${id}`).send({
-            id:id
-        })
+        const deleteResponse = await request(app).delete(`/api/applications/${id}`)
 
         expect(deleteResponse.status).toBe(400)
     })
