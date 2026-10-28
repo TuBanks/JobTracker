@@ -12,11 +12,10 @@ export async function createApplicationsTable(pool:Pool){
                 date DATE NOT NULL
             );`
         )
-
-        console.log(result.rowCount)
+        console.log("applications table exists or was created.")
     }
     catch(error){
-        throw error
+        console.error("Error when init applications table",error)
     }
 }
 
@@ -90,8 +89,24 @@ export async function selectAllApplications(pool:Pool): Promise<Application[]>{
     }
 }
 
-async function getApplication(){
+export async function getApplication(pool:Pool,id:string): Promise<Application | undefined>{
+    try{
+        const result = await pool.query(
+            "SELECT 1 FROM applications WHERE id=$1",
+            [id]
+        )
 
+        if(result.rowCount == 1){
+            return result.rows[0]
+        }
+        else{
+            return undefined
+        }
+    }
+    catch(error){
+        console.log("Failed to fetch application with id:",id)
+        throw error
+    }
 }
 
 async function updateApplication(){

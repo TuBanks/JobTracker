@@ -3,7 +3,8 @@ import cors from "cors"
 import {Pool, PoolConfig} from "pg"
 import {success, z} from "zod"
 import type {Application,ApplicationInfo} from '../shared/types'
-import { insertApplication,deleteApplication,selectAllApplications} from './db-operations'
+import { insertApplication,deleteApplication,selectAllApplications,getApplication} from './db-operations'
+import { equal } from 'assert'
 
 export function createApp(pool:Pool){
 
@@ -15,8 +16,8 @@ export function createApp(pool:Pool){
     }))
 
     const applicationSchema = z.object({
-    company: z.string().trim().min(1),
-    position: z.string().trim().min(1),
+    company: z.string().trim().min(1).max(200),
+    position: z.string().trim().min(1).max(200),
     status: z.enum([
         "Applied",
         "Interviewing",
@@ -37,7 +38,38 @@ export function createApp(pool:Pool){
     }
     })
 
-    app.post("/api/add-application", async (req,res) =>{
+    app.get(`/api/applications/:id`,async (req,res) =>{
+        const result = z.object({
+            id:z.uuid()
+        }).safeParse(req.body)
+        if(result.success){
+            const data = result.data
+            const id = data.id
+            try{
+                const application = await getApplication(pool,data.id)
+
+                if(application){
+                    console.log("GET application success")
+                    res.status(200).json(application)
+                }
+                else{
+                    console.log("GET application not found")
+                    res.status(404).send()
+                }
+            }
+            catch(error){
+                console.error("Unexpected database error",error)
+                res.status(500).send()
+            }
+            
+        }
+        else{
+            console.log("Get failed: invalid id format")
+            res.status(400).send()
+        }
+    })
+
+    app.post("/api/applications", async (req,res) =>{
 
     const result = applicationSchema.safeParse(req.body)
     if(result.success){
@@ -50,12 +82,12 @@ export function createApp(pool:Pool){
         }
         
         try{
-        const application = await insertApplication(pool,newApplicationInfo)
-        res.status(201).json({application:application})
+            const application = await insertApplication(pool,newApplicationInfo)
+            res.status(201).json({application:application})
         }
         catch(error){
-        console.error("Unexpected database error:",error)
-        res.status(500).send()
+            console.error("Unexpected database error:",error)
+            res.status(500).send()
         }
         
     }
@@ -67,7 +99,7 @@ export function createApp(pool:Pool){
     
     })
 
-    app.delete("/api/remove-application",async (req,res) =>{
+    app.delete("/api/applications/:id",async (req,res) =>{
     const result = z.object({
         id: z.uuidv7()
     }).safeParse(req.body)
@@ -95,7 +127,7 @@ export function createApp(pool:Pool){
 
     }
     else{
-        console.log("Failed to remove application")
+        console.log("Failed to remove application: invalid id format")
         res.status(400).send()
     }
     })
