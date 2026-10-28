@@ -92,7 +92,13 @@ export async function selectAllApplications(pool:Pool): Promise<Application[]>{
 export async function getApplication(pool:Pool,id:string): Promise<Application | undefined>{
     try{
         const result = await pool.query(
-            "SELECT 1 FROM applications WHERE id=$1",
+            `SELECT 
+            id,
+            company,
+            position,
+            status,
+            TO_CHAR(date, 'YYYY-MM-DD') as date 
+            FROM applications WHERE id=$1`,
             [id]
         )
 

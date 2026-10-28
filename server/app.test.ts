@@ -36,7 +36,7 @@ afterAll(async ()=>{
         console.log("Pooled successfully closed.")
     }
     catch(error){
-        console.error("Failed to close pool.",error)
+        throw error
     }
     
 })
@@ -74,6 +74,48 @@ describe("Test get applications", ()=>{
             status:"Rejected",
             date:"2026-10-28"
         }])
+    })
+})
+
+describe("Test get application by id",()=>{
+    it("Add application, get it by it", async()=>{
+        const addResponse = await request(app).post("/api/applications").send({
+            company:"Google",
+            position:"Developer",
+            status:"Applied",
+            date:"2026-10-28"
+        })
+
+        expect(addResponse.status).toBe(201)
+        expect(addResponse.body.application).toEqual({
+            id: expect.any(String),
+            company:"Google",
+            position:"Developer",
+            status:"Applied",
+            date:"2026-10-28"
+        })
+        const id = addResponse.body.application.id
+        const getResponse = await request(app).get(`/api/applications/${id}`)
+
+        expect(getResponse.status).toBe(200)
+        expect(getResponse.body).toEqual({
+            id: id,
+            company:"Google",
+            position:"Developer",
+            status:"Applied",
+            date:"2026-10-28",
+        })
+    })
+    it("Get invalid format id",async ()=>{
+        const getResponse = await request(app).get("/api/applications/123")
+
+        expect(getResponse.status).toBe(400)
+    })
+    it("Get non existing id",async ()=>{
+        const id = "01a18363-ecdd-7401-b66f-d4dc2c8ab72d"
+        const getResponse = await request(app).get(`/api/applications/${id}`)
+
+        expect(getResponse.status).toBe(404)
     })
 })
 
