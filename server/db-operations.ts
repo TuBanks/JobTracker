@@ -1,5 +1,5 @@
 import {Pool} from "pg"
-import { Application, ApplicationInfo } from "../shared/types"
+import { Application, ApplicationInfo,JobStatus } from "../shared/types"
 
 export async function createApplicationsTable(pool:Pool){
     try{
@@ -115,6 +115,50 @@ export async function getApplication(pool:Pool,id:string): Promise<Application |
     }
 }
 
-async function updateApplication(){
+export async function updateApplication(pool:Pool,
+    id:string,
+    fields:{company?:string,position?:string,status?:JobStatus,date?:string}
+    ):Promise<Application | undefined>
+    {
+
+    try{
+        let query = "UPDATE applications SET"
+        let numFields = 1
+        const queryParams:(string | undefined)[] = [...Object.values(fields),id]
+        for(let field in fields){
+            const setQuery = ` ${field} = $${numFields},`
+            query = query.concat(" ",setQuery)
+            numFields += 1
+        }
+        query = query.slice(0,-1)
+        query = query.concat("",` WHERE id = $${numFields} RETURNING
+            id,
+            company,
+            position,
+            status,
+            TO_CHAR(date, 'YYYY-MM-DD') as date;
+            `)
+        const result = await pool.query(
+            query,
+            queryParams
+        )
+
+        if(result.rowCount == 1){
+            console.log("UPDATE: Update successful")
+            return result.rows[0]
+        }
+        else{
+            console.log("UPDATE: Application with id not found")
+            return undefined
+        }
+
+    }
+    catch(error){
+        throw error
+    }
 
 }
+
+
+
+

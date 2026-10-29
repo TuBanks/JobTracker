@@ -54,9 +54,8 @@ describe("Test get applications", ()=>{
             status:"Rejected",
             date:"2026-10-28",
         })
-
         expect(response2.status).toBe(201)
-        expect(response2.body.application).toEqual({
+        expect(response2.body).toEqual({
             id: expect.any(String),
             company: "Google",
             position:"Software Developer",
@@ -65,7 +64,6 @@ describe("Test get applications", ()=>{
         })
 
         const response3 = await request(app).get("/api/applications")
-
         expect(response3.status).toBe(200)
         expect(response3.body).toEqual([{
             id: expect.any(String),
@@ -78,7 +76,7 @@ describe("Test get applications", ()=>{
 })
 
 describe("Test get application by id",()=>{
-    it("Add application, get it by it", async()=>{
+    it("Add application, get it by id", async()=>{
         const addResponse = await request(app).post("/api/applications").send({
             company:"Google",
             position:"Developer",
@@ -87,14 +85,14 @@ describe("Test get application by id",()=>{
         })
 
         expect(addResponse.status).toBe(201)
-        expect(addResponse.body.application).toEqual({
+        expect(addResponse.body).toEqual({
             id: expect.any(String),
             company:"Google",
             position:"Developer",
             status:"Applied",
             date:"2026-10-28"
         })
-        const id = addResponse.body.application.id
+        const id = addResponse.body.id
         const getResponse = await request(app).get(`/api/applications/${id}`)
 
         expect(getResponse.status).toBe(200)
@@ -188,7 +186,7 @@ describe("Test remove application route",()=>{
         })
         
         expect(addResponse.status).toBe(201)
-        expect(addResponse.body.application).toEqual({
+        expect(addResponse.body).toEqual({
             id: expect.any(String),
             company:"Google",
             position:"Developer",
@@ -196,14 +194,12 @@ describe("Test remove application route",()=>{
             date:"2026-10-28",
         })
 
-        const id = addResponse.body.application.id
+        const id = addResponse.body.id
         const deleteResponse = await request(app).delete(`/api/applications/${id}`)
-
         expect(deleteResponse.status).toBe(200)
         expect(deleteResponse.body.id).toEqual(id)
 
         const getResponse = await request(app).get(`/api/applications/${id}`)
-
         expect(getResponse.status).toBe(404)
     })
 
@@ -216,10 +212,57 @@ describe("Test remove application route",()=>{
     it("delete an invalid id format",async()=>{
         const id = "123"
         const deleteResponse = await request(app).delete(`/api/applications/${id}`)
-
         expect(deleteResponse.status).toBe(400)
     })
     
+})
+
+describe("Test patch route",()=>{
+    it("Add application, update it, get it, delete it", async()=>{
+        const addResponse = await request(app).post("/api/applications").send({
+            company:"Google",
+            position:"Developer",
+            status:"Applied",
+            date:"2026-10-28"
+        })
+
+        expect(addResponse.status).toBe(201)
+        expect(addResponse.body).toEqual({
+            id: expect.any(String),
+            company:"Google",
+            position:"Developer",
+            status:"Applied",
+            date:"2026-10-28",
+        })
+
+        const id = addResponse.body.id
+        const updateResponse = await request(app).patch(`/api/applications/${id}`).send({
+            status:"Rejected",
+        })
+        
+        expect(updateResponse.status).toBe(200)
+        expect(updateResponse.body).toEqual({
+            id:id,
+            company:"Google",
+            position:"Developer",
+            status:"Rejected",
+            date:"2026-10-28"
+        })
+
+        const getResponse = await request(app).get(`/api/applications/${id}`)
+        expect(getResponse.status).toBe(200)
+        expect(getResponse.body).toEqual({
+            id:id,
+            company:"Google",
+            position:"Developer",
+            status:"Rejected",
+            date:"2026-10-28"
+        })
+
+        const deleteResponse = await request(app).delete(`/api/applications/${id}`)
+        expect(deleteResponse.status).toBe(200)
+        expect(deleteResponse.body).toEqual({id})
+    })
 })
 
 
