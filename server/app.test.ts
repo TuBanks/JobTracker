@@ -263,6 +263,50 @@ describe("Test patch route",()=>{
         expect(deleteResponse.status).toBe(200)
         expect(deleteResponse.body).toEqual({id})
     })
+    it("Patch non existing application",async()=>{
+        const id = "01a18363-ecdd-7401-b66f-d4dc2c8ab72d"
+        const updateResponse = await request(app).patch(`/api/applications/${id}`).send({
+            status:"Rejected"
+        })
+
+        expect(updateResponse.status).toBe(404)
+    })
+    it("Patch invalid field value",async()=>{
+        const addResponse = await request(app).post("/api/applications").send({
+            company:"Google",
+            position:"Developer",
+            status:"Applied",
+            date:"2026-10-28"
+        })
+
+        expect(addResponse.status).toBe(201)
+        expect(addResponse.body).toEqual({
+            id: expect.any(String),
+            company:"Google",
+            position:"Developer",
+            status:"Applied",
+            date:"2026-10-28",
+        })
+
+        const id = addResponse.body.id
+
+        const updateResponse = await request(app).patch(`/api/applications/${id}`).send({
+            company:1
+        })
+
+        expect(updateResponse.status).toBe(400)
+
+        const getResponse = await request(app).get(`/api/applications/${id}`)
+
+        expect(getResponse.status).toBe(200)
+        expect(getResponse.body).toEqual({
+            id: id,
+            company:"Google",
+            position:"Developer",
+            status:"Applied",
+            date:"2026-10-28",
+        })
+    })
 })
 
 
