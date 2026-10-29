@@ -134,7 +134,7 @@ export function createApp(pool:Pool){
     const patchSchema = applicationSchema.partial().refine(
         (data)=> Object.keys(data).length > 0,
         {message: "Minimum 1 field must be provided to update an application."}
-    )
+    ).strict()
 
     app.patch(`/api/applications/:id`,async (req,res)=>{
         const idResult = z.object({
