@@ -52,7 +52,7 @@ function App() {
     }
     async function postApplication(appInfo:ApplicationInfo){
       try{
-        const response = await fetch("http://localhost:3000/api/add-application",{
+        const response = await fetch("http://localhost:3000/api/applications",{
         method: "POST",
         headers:{
           "Content-Type": "application/json"
@@ -83,12 +83,11 @@ function App() {
   function removeApplication(id:string){
     async function deleteApplication(id:string){
       try{
-        const response = await fetch("http://localhost:3000/api/remove-application",{
+        const response = await fetch(`http://localhost:3000/api/applications/${id}`,{
           method:"DELETE",
           headers:{
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({id:id}),
         }
         )
 
@@ -109,6 +108,9 @@ function App() {
   return(
     <div>
       <ApplicationHeader/>
+      <h2 className="text-3xl font-bold text-blue-600">
+        Testing Tailwind
+      </h2>
       {applications.map(((application) => (
         <div key={application.id}>
           <ApplicationCard company={application.company} position={application.position} status={application.status} date={application.date}/>

@@ -7,3 +7,5 @@ export interface Application{
 }
 
 export type ApplicationInfo = Omit<Application,"id">
+
+export type JobStatus = "Applied" | "Rejected" | "Interviewing" | "Offer"
