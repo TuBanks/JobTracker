@@ -27,6 +27,11 @@ export function createApp(pool:Pool){
     date: z.iso.date(),
     })
 
+    const patchSchema = applicationSchema.partial().refine(
+        (data)=> Object.keys(data).length > 0,
+        {message: "Minimum 1 field must be provided to update an application."}
+    ).strict()
+
     app.get("/api/applications", async (req,res) => {
     try{
         const applications = await selectAllApplications(pool)
@@ -130,11 +135,6 @@ export function createApp(pool:Pool){
             res.status(400).send()
         }
     })
-
-    const patchSchema = applicationSchema.partial().refine(
-        (data)=> Object.keys(data).length > 0,
-        {message: "Minimum 1 field must be provided to update an application."}
-    ).strict()
 
     app.patch(`/api/applications/:id`,async (req,res)=>{
         const idResult = z.object({
