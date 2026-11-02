@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/popover"
 
 import { Input } from "@/components/ui/input"
+import {Spinner} from "@/components/ui/spinner"
 
 import {Button} from "@/components/ui/button"
 import {Badge,badgeVariants} from "@/components/ui/badge"
@@ -75,14 +76,13 @@ function ApplicationCard({id,company,position,status,date,editApplication}:Appli
     const [statusValue,setStatusValue] = useState<JobStatus>(status)
     const [dateValue,setDateValue] = useState<string>(date)
     const [badgeColor,setBadgeColor] = useState<string>(badgeColors[status])
-
-    const [currCompany,setCurrCompany] = useState<string>(company)
-    const [currPosition,setCurrPosition] = useState<string>(position)
-    const [currStatus,setCurrStatus] = useState<JobStatus>(status)
-    const [currDate,setCurrDate] = useState<string>(date)
+    const [saving,setSaving] = useState<boolean>(false)
 
     function applyChanges(){
-        setEditing(false)
+        if(saving==true){
+            return
+        }
+        setSaving(true)
         let fields:EditFields = {}
         if(companyValue !== company){
             fields.company = companyValue
@@ -94,27 +94,18 @@ function ApplicationCard({id,company,position,status,date,editApplication}:Appli
             fields.status = statusValue
         }
         if(dateValue !== date){
-            fields.date == dateValue
+            fields.date = dateValue
         }
-        async function asyncChanges(id:string,fields:EditFields){
-            try{
-            const response = await editApplication(id,fields)
+        async function applyAsyncChanges(id:string,fields:EditFields){
+            await editApplication(id,fields)
 
-            if(response == undefined){
-                return
-            }
+            setEditing(false)
+            setSaving(false)
 
-            const application:Application = response
-            setCurrCompany(application.company)
-            setCurrPosition(application.position)
-            setCurrStatus(application.status)
-            setCurrDate(application.date)
         }
-        catch(error){
-            console.error(error)
-        }
-        }
-        asyncChanges(id,fields)
+
+        applyAsyncChanges(id,fields)
+        
 
     }
 
@@ -124,17 +115,17 @@ function ApplicationCard({id,company,position,status,date,editApplication}:Appli
                 {editing ? (
                     <Input placeholder={company} value={companyValue} onChange={(e)=>(setCompanyValue(e.target.value))}/>
                 ): (
-                    <CardTitle> {currCompany} </CardTitle>
+                    <CardTitle> {company} </CardTitle>
                 )}
                 {editing ? (
                     <Input placeholder={position} value={positionValue} onChange={(e)=>(setPositionValue(e.target.value))}/>
                 ): (
-                    <CardDescription> {currPosition} </CardDescription>
+                    <CardDescription> {position} </CardDescription>
                 )}
             </CardHeader>
             <CardContent>
                 {editing ? (
-                    <Select defaultValue={currStatus} onValueChange={(newStatus)=>{
+                    <Select defaultValue={status} onValueChange={(newStatus)=>{
                         if(newStatus){
                             setStatusValue(newStatus)
                             setBadgeColor(badgeColors[newStatus])
@@ -152,7 +143,7 @@ function ApplicationCard({id,company,position,status,date,editApplication}:Appli
                         </SelectContent>
                     </Select>
                 ):(
-                    <Badge className={badgeColor} variant="default" > {currStatus} </Badge>
+                    <Badge className={badgeColor} variant="default" > {status} </Badge>
                 )}
             </CardContent>
             <CardFooter>
@@ -174,7 +165,7 @@ function ApplicationCard({id,company,position,status,date,editApplication}:Appli
                                             selected={dateValueToDate(dateValue)}
                                             onSelect={(newDate)=>{{
                                                 if(newDate){
-                                                    setDateValue(`${newDate.getFullYear()}-${newDate.getMonth()+1}-${newDate.getDate()}`)
+                                                    setDateValue(`${newDate.getFullYear()}-${String(newDate.getMonth()+1).padStart(2,"0")}-${String(newDate.getDate()).padStart(2,"0")}`)
                                                 }
                                                 
                                             }}}
@@ -197,11 +188,18 @@ function ApplicationCard({id,company,position,status,date,editApplication}:Appli
                                 </PopoverHeader>
                             </PopoverContent>
                         </Popover>
-                        <Button onClick={()=>applyChanges()}> Apply </Button>
+                        <Button onClick={()=>applyChanges()}>
+                            {saving ? (
+                                <Spinner/>
+                            ):(
+                                <div>Apply</div>
+                            )} 
+                        
+                        </Button>
                     </div>
                 ):(
                     <div className="flex w-full justify-between">
-                        <CardDescription> {currDate} </CardDescription>
+                        <CardDescription> {date} </CardDescription>
                         <Button onClick={()=>{setEditing(true)}}> Edit </Button>
                     </div>
                 )}

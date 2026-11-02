@@ -108,7 +108,7 @@ function App() {
     id:string,
     fields:{company?:string,position?:string,status?:JobStatus,date?:string},
     remove?:boolean
-    ):Promise<Application | undefined>{
+    ){
       if(remove == true){
         removeApplication(id)
         return
@@ -130,9 +130,13 @@ function App() {
           throw new Error(`Failed to edit application. HTML status:${response.status}`)
         }
 
-        const application:Application = await response.json()
+        const updatedApplication:Application = await response.json()
 
-        return application
+        updateApplications(prevApplications => prevApplications.map(item =>
+          item.id === updatedApplication.id ? updatedApplication : item
+        ))
+
+        return
       
 
       }
