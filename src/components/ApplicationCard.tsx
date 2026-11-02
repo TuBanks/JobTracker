@@ -106,9 +106,16 @@ function ApplicationCard({id,company,position,status,date,editApplication}:Appli
 
         applyAsyncChanges(id,fields)
         
-
     }
 
+    function beginEditing(){
+        setEditing(true)
+
+        setCompanyValue(company)
+        setPositionValue(position)
+        setStatusValue(status)
+        setDateValue(date)
+    }
     return(
         <Card size="sm" className="mx-auto w-full max-w-xs">
             <CardHeader>
@@ -200,7 +207,7 @@ function ApplicationCard({id,company,position,status,date,editApplication}:Appli
                 ):(
                     <div className="flex w-full justify-between">
                         <CardDescription> {date} </CardDescription>
-                        <Button onClick={()=>{setEditing(true)}}> Edit </Button>
+                        <Button onClick={()=>beginEditing()}> Edit </Button>
                     </div>
                 )}
 
