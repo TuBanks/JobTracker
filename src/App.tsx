@@ -106,16 +106,32 @@ function App() {
 
   async function editApplication(
     id:string,
-    fields:{company?:string,position?:string,status?:JobStatus,date?:string},
-    remove?:boolean
-    ){
-      if(remove == true){
-        removeApplication(id)
-        return
-      }
+    fields:{company?:string,position?:string,status?:JobStatus,date?:string}
+    ):Promise<{message?:string,success:boolean}>{
       if(Object.keys(fields).length < 1){
         console.log("No application fields changed.")
-        return
+        return {message:"No application fields changed.",success:true}
+      }
+      let errorMessage = ""
+      let valid = true
+      if (fields.company?.trim().length == 0){
+        errorMessage = 'Company name must be atleast 1 character long.'
+        valid = false
+      }
+      else if(fields.position?.trim().length == 0){
+          errorMessage = 'Position must be atleast 1 character long.'
+          valid = false
+      }
+      else if(fields.date?.trim().length == 0){
+          errorMessage = 'Please enter an application date.'
+          valid = false
+      }
+      else if(fields.status && ["Applied","Rejected","Interviewing","Offer"].includes(fields.status)){
+          errorMessage = 'Invalid status'
+          valid = false
+      }
+      if(!valid){
+        return {message:errorMessage,success:valid}
       }
       try{
         const response = await fetch(`http://localhost:3000/api/applications/${id}`,{
@@ -136,12 +152,13 @@ function App() {
           item.id === updatedApplication.id ? updatedApplication : item
         ))
 
-        return
+        return {success:true}
       
 
       }
       catch(error){
         console.error("Unexpected error when patching",error)
+        return {success:false}
       }
     
   }
@@ -153,6 +170,7 @@ function App() {
         {applications.map(((application) => (
             <ApplicationCard 
               editApplication={editApplication} 
+              removeApplication={removeApplication}
               key={application.id} id={application.id} 
               company={application.company} 
               position={application.position} 

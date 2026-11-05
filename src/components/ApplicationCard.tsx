@@ -46,7 +46,8 @@ interface ApplicatioCardProps{
     position:string,
     status:JobStatus,
     date:string,
-    editApplication:(id:string,fields:EditFields,remove?:boolean) => void
+    editApplication:(id:string,fields:EditFields,remove?:boolean) => Promise<{message?:string,success:boolean}>
+    removeApplication:(id:string) => void
 }
 
 function dateValueToDate(date:string){
@@ -68,7 +69,7 @@ const badgeColors = {
     Offer: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
 }
 
-function ApplicationCard({id,company,position,status,date,editApplication}:ApplicatioCardProps){
+function ApplicationCard({id,company,position,status,date,editApplication,removeApplication}:ApplicatioCardProps){
 
     const [editing,setEditing] = useState<boolean>(false)
     const [companyValue,setCompanyValue] = useState<string>(company)
@@ -97,9 +98,14 @@ function ApplicationCard({id,company,position,status,date,editApplication}:Appli
             fields.date = dateValue
         }
         async function applyAsyncChanges(id:string,fields:EditFields){
-            await editApplication(id,fields)
+            const response = await editApplication(id,fields)
+            if(response.message){
+                console.log(response.message)
+            }
+            if(response.success){
+                setEditing(false)
+            }
 
-            setEditing(false)
             setSaving(false)
 
         }
@@ -191,7 +197,7 @@ function ApplicationCard({id,company,position,status,date,editApplication}:Appli
                                 <PopoverHeader>
                                     <PopoverTitle>Delete this application?</PopoverTitle>
                                     <PopoverDescription>This action is irreversible.</PopoverDescription>
-                                    <Button onClick={()=>editApplication(id,{},true)}>Confirm</Button>
+                                    <Button onClick={()=>removeApplication(id)}>Confirm</Button>
                                 </PopoverHeader>
                             </PopoverContent>
                         </Popover>
