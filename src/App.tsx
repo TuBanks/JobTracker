@@ -41,40 +41,40 @@ function App() {
     
   },[])
 
-  function addApplication(application:ApplicationInfo){
-    const newAppInfo:ApplicationInfo = {
+  async function addApplication(application:ApplicationInfo):Promise<{message?:string,success:boolean}>{
+    const appInfo:ApplicationInfo = {
       company:application.company.trim(),
       position:application.position.trim(),
       status:application.status,
       date:application.date
     }
-    async function postApplication(appInfo:ApplicationInfo){
-      try{
-        const response = await fetch("http://localhost:3000/api/applications",{
-        method: "POST",
-        headers:{
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(appInfo)
-        })
+    try{
+      const response = await fetch("http://localhost:3000/api/applications",{
+      method: "POST",
+      headers:{
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(appInfo)
+      })
 
-        if (!response.ok){
-          throw new Error(`HTTP error: ${response.status}`)
-        }
-
-        const data = await response.json()
-
-        if(response.status == 201){
-          const newApp:Application = data
-          updateApplications(prevApplications => [...prevApplications,newApp])
-        }
+      if (!response.ok){
+        throw new Error(`HTTP error: ${response.status}`)
       }
-      catch(error){
-        throw error
+
+      const data = await response.json()
+
+      if(data.id && data.company && data.position && data.status && data.date){
+        const newApp:Application = data
+        updateApplications(prevApplications => [...prevApplications,newApp])
+        return {success:true}
       }
+
+      return {message:"Unexpected JSON body error",success:false}
     }
-
-    postApplication(newAppInfo)
+    catch(error){
+      console.error("Failed to add application:",error)
+      return {message:"Unexpected error when adding application.",success:false}
+    }
       
   }
 
@@ -126,7 +126,7 @@ function App() {
           errorMessage = 'Please enter an application date.'
           valid = false
       }
-      else if(fields.status && ["Applied","Rejected","Interviewing","Offer"].includes(fields.status)){
+      else if(fields.status && !["Applied","Rejected","Interviewing","Offer"].includes(fields.status)){
           errorMessage = 'Invalid status'
           valid = false
       }
