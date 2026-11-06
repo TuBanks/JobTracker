@@ -6,6 +6,12 @@ export interface Application{
     date:string,
 }
 
+export interface User{
+    id:string,
+    email:string,
+    password_hash:string,
+}
+
 export type ApplicationInfo = Omit<Application,"id">
 
 export type JobStatus = "Applied" | "Rejected" | "Interviewing" | "Offer"

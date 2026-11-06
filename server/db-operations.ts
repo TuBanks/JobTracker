@@ -1,21 +1,104 @@
 import {Pool} from "pg"
-import { Application, ApplicationInfo,JobStatus } from "../shared/types"
+import { Application, ApplicationInfo,JobStatus,User } from "../shared/types"
 
 export async function createApplicationsTable(pool:Pool){
     try{
         const result = await pool.query(
             `CREATE TABLE IF NOT EXISTS applications(
                 id UUID DEFAULT uuidv7() PRIMARY KEY,
+                user_id UUID,
                 company VARCHAR(200) NOT NULL,
                 position VARCHAR(200) NOT NULL,
                 status VARCHAR(20) NOT NULL CHECK(status = 'Applied' OR status = 'Interviewing' OR status = 'Rejected' OR status = 'Offer'),
-                date DATE NOT NULL
+                date DATE NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );`
         )
-        console.log("applications table exists or was created.")
+        console.log("TABLE (applications) exists or was created.")
     }
     catch(error){
         console.error("Error when init applications table",error)
+    }
+}
+
+export async function createUsersTable(pool:Pool){
+    try{
+        const result = await pool.query(
+            `
+            CREATE TABLE IF NOT EXISTS users(
+                id UUID DEFAULT uuidv7() PRIMARY KEY,
+                email VARCHAR(200) UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL
+            )
+            `
+        )
+        console.log("TABLE (users) exists or was created.")
+    }
+    catch(error){
+        console.error("Error when init users table:",error)
+    }
+}
+
+export async function createSessionsTable(pool:Pool){
+    try{
+        const result = await pool.query(`
+            CREATE TABLE IF NOT EXISTS sessions(
+                token_hash TEXT PRIMARY KEY,
+                user_id UUID NOT NULL,
+                expiration_date TIMESTAMPTZ NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+            `
+        )
+        console.log("TABLE (sessions) exists or was created.")
+    }
+    catch(error){
+        console.error("Error when init sessions table:",error)
+    }
+}
+
+export async function insertUser(pool:Pool,email:string,hashedPassword:string): Promise<User | undefined>{
+    try{
+        const result = await pool.query(`
+            INSERT INTO users (email,password_hash)
+            VALUES ($1,$2)
+            RETURNING *;
+            `,
+            [email,hashedPassword]
+        )
+
+        console.log(result.rows)
+        if(result.rowCount !== null && result.rowCount == 1){
+            return result.rows[0]
+        }
+        else{
+            return undefined
+        }
+    }
+    catch(error){
+        throw new Error(`Database error when inserting new user:${email} , hash:${hashedPassword}`,{cause:error})
+    }
+}
+
+export async function getHashedPasswordFromUser(pool:Pool,email:string): Promise<string | undefined>{
+    try{
+        const result = await pool.query(`
+            SELECT password_hash
+            FROM users
+            WHERE email = $1;
+            `,
+            [email]
+        )
+
+        if(result.rowCount != null && result.rowCount == 1){
+            return result.rows[0]
+        }
+        else{
+            return undefined
+        }
+    }
+    catch(error){
+        throw new Error(`Error retreiving password_hash from user with email:${email}`,{cause:error})
     }
 }
 

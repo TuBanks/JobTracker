@@ -2,9 +2,10 @@ import express from 'express'
 import cors from "cors"
 import {Pool, PoolConfig} from "pg"
 import {success, uuid, z} from "zod"
+import * as argon2 from 'argon2'
 import type {Application,ApplicationInfo} from '../shared/types'
-import { insertApplication,deleteApplication,selectAllApplications,getApplication,updateApplication} from './db-operations'
-import { equal } from 'assert'
+import { insertUser,insertApplication,deleteApplication,selectAllApplications,getApplication,updateApplication, getHashedPasswordFromUser} from './db-operations'
+import { randomBytes,createHash } from 'crypto'
 
 export function createApp(pool:Pool){
 
@@ -31,6 +32,146 @@ export function createApp(pool:Pool){
         (data)=> Object.keys(data).length > 0,
         {message: "Minimum 1 field must be provided to update an application."}
     ).strict()
+
+    function hashToken(token:string):string{
+        const hashedToken = createHash("sha256").update(token).digest("hex")
+        return hashedToken
+    }
+
+    async function createSession(pool:Pool,email:string):Promise<string | undefined>{
+        const token = randomBytes(32).toString("hex")
+        const hashedToken = hashToken(token)
+        try{
+
+            const result = await pool.query(`
+                INSERT INTO sessions (token_hash,user_id,expiration_date)
+                SELECT $1,id,NOW() + INTERVAL '7 DAYS' FROM users
+                WHERE email = $2
+                RETURNING user_id;
+                `,
+                [hashedToken,email]
+            )
+
+            if(result && result.rowCount == 1){
+                return token
+            }
+            else{
+                return undefined
+            }
+        }
+        catch(error){
+            throw new Error("Error when inserting into sessions",{cause:error})
+        }
+    }
+
+    async function findSession(pool:Pool,token:string):Promise<boolean>{
+        const hashedToken = hashToken(token)
+        try{
+            const result = await pool.query(`
+                SELECT user_id
+                FROM sessions
+                WHERE token_hash = $1
+                `,
+                [token]
+            )
+
+            if(result && result.rowCount == 1){
+                return true
+            }
+            else{
+                return false
+            }
+        }
+        catch(error){
+            throw new Error("Unexpected error when finding session",{cause:error})
+        }
+    }
+
+    app.post("/api/register", async (req,res) =>{
+        const result = z.object({
+            email:z.string().min(3).toLowerCase(),
+            password:z.string().min(3),
+        }).safeParse(req.body)
+        if(result.success){
+            const data = result.data
+            const email = data.email
+            const password = data.password
+
+            try{
+                const hashedPassword = await argon2.hash(password, {
+                    type: argon2.argon2id
+                })
+
+                const queryResponse = await insertUser(pool,email,hashedPassword)
+                if(!queryResponse){
+                    res.status(409).json({error:"User with email address already exists."})
+                }
+
+                res.status(201).send()
+            }
+            catch(error){
+                console.error("Unexpected registration error:",error)
+                res.status(500).json({cause:"Unexpected server error when registering."})
+            }
+        }
+        else{
+            res.status(400).json({error:"Invalid email or password."})
+        }
+    })
+
+    app.post("/api/login", async (req,res) =>{
+        const result = z.object({
+            email:z.string().min(3).toLowerCase(),
+            password:z.string().min(3)
+        }).safeParse(req.body)
+        if(result.success){
+            const data = result.data
+            const email = data.email
+            const password = data.password
+
+            try{
+                const hashedPassword = await getHashedPasswordFromUser(pool,email)
+                if(!hashedPassword){
+                    res.status(404).json({cause:"Email not found."})
+                    return
+                }
+
+                const isValid = await argon2.verify(hashedPassword,password)
+                if(!isValid){
+                    res.status(404).json({cause:"Incorrect password."})
+                    return
+                }
+            }
+            catch(error){
+                console.error("Error when verifying password",error)
+            }
+
+
+            try{
+                const sessionToken =  await createSession(pool,email)
+                if(!sessionToken){
+                    res.status(404).json({cause:"Session not found."})
+                    return
+                }
+
+                res.status(201).cookie("session",sessionToken,{
+                    httpOnly:true,
+                    secure:false,
+                    sameSite:"lax",
+                    maxAge: 7 * 24 * 60 * 60 * 1000
+                })
+
+
+            }
+            catch(error){
+                console.error("Error when creating session",error)
+                res.status(500).json({cause:"Unexpected server error during login."})
+            }
+        }
+        else{
+            res.status(400).json({cause:"Invalid email/password input."})
+        }
+    })
 
     app.get("/api/applications", async (req,res) => {
     try{

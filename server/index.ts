@@ -2,7 +2,7 @@ import express from 'express'
 import cors from "cors"
 import {Pool, PoolConfig} from "pg"
 import {createApp} from "./app"
-import {createApplicationsTable} from './db-operations'
+import {createApplicationsTable, createUsersTable, createSessionsTable} from './db-operations'
 
 const config:PoolConfig = {
   host: "localhost",
@@ -18,9 +18,14 @@ async function initServer(pool:Pool){
 
     const app = createApp(pool)
 
-    const result = await createApplicationsTable(pool)
+    const applicationsResult = await createApplicationsTable(pool)
+    const usersResult = await createUsersTable(pool)
+    const sessionsResult = await createSessionsTable(pool)
     const test = await pool.query(
-      "SELECT * FROM applications LIMIT 1;"
+      `SELECT * FROM applications LIMIT 1;
+      SELECT * FROM users LIMIT 1;
+      SELECT * FROM sessions LIMIT 1;
+      `
     )
 
     app.listen(3000, ()=>{
