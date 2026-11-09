@@ -42,7 +42,6 @@ export function createApp(pool:Pool){
         const token = randomBytes(32).toString("hex")
         const hashedToken = hashToken(token)
         try{
-
             const result = await pool.query(`
                 INSERT INTO sessions (token_hash,user_id,expiration_date)
                 SELECT $1,id,NOW() + INTERVAL '7 DAYS' FROM users
@@ -159,7 +158,7 @@ export function createApp(pool:Pool){
                     secure:false,
                     sameSite:"lax",
                     maxAge: 7 * 24 * 60 * 60 * 1000
-                })
+                }).json({message:"Login successful!"})
 
 
             }

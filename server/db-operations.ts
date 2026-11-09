@@ -62,6 +62,7 @@ export async function insertUser(pool:Pool,email:string,hashedPassword:string): 
         const result = await pool.query(`
             INSERT INTO users (email,password_hash)
             VALUES ($1,$2)
+            ON CONFLICT(email) DO NOTHING
             RETURNING *;
             `,
             [email,hashedPassword]
@@ -90,8 +91,8 @@ export async function getHashedPasswordFromUser(pool:Pool,email:string): Promise
             [email]
         )
 
-        if(result.rowCount != null && result.rowCount == 1){
-            return result.rows[0]
+        if(result.rowCount != null && result.rowCount == 1 && result.rows[0].password_hash){
+            return result.rows[0].password_hash
         }
         else{
             return undefined

@@ -2,7 +2,7 @@ import request from "supertest"
 import {beforeAll,afterAll,afterEach,describe,it,expect} from "vitest"
 import {Pool, PoolConfig} from "pg"
 import {createApp} from "./app"
-import { createApplicationsTable } from "./db-operations"
+import { createApplicationsTable,createUsersTable,createSessionsTable } from "./db-operations"
 
 const config:PoolConfig = {
   host: "localhost",
@@ -18,7 +18,10 @@ const pool = new Pool(config)
 const app = createApp(pool)
 
 beforeAll(async ()=>{
+    console.log("BeforeAll Ran")
     const response = await createApplicationsTable(pool)
+    const userResponse = await createUsersTable(pool)
+    const sessionResponse = await createSessionsTable(pool)
 })
 afterEach(async ()=>{
     try{
@@ -32,6 +35,9 @@ afterEach(async ()=>{
 })
 afterAll(async ()=>{
     try{
+        const response = await pool.query(
+        "TRUNCATE TABLE users CASCADE;"
+        )
         await pool.end()
         console.log("Pooled successfully closed.")
     }
@@ -399,6 +405,37 @@ describe("Test patch route",()=>{
             date:"2026-10-28",
         })
     
+    })
+})
+
+describe("Test register route", ()=>{
+    it("Test valid email and password", async()=>{
+        const response = await request(app).post("/api/register").send({
+            email:"test@gmail.com",
+            password:"password"
+        })
+        expect(response.status).toBe(201)
+    })
+    it("Test adding same account again", async()=>{
+        const response = await request(app).post("/api/register").send({
+            email:"test@gmail.com",
+            password:"password"
+        })
+        expect(response.status).toBe(409)
+    })
+})
+
+describe("Test login route", ()=>{
+    it("Login to existing account and get cookie",async()=>{
+        const response = await request(app).post("/api/login").send({
+            email:"test@gmail.com",
+            password:"password"
+        })
+
+        expect(response.status).toBe(201)
+        expect(response.body).toEqual({
+            message:"Login successful!"
+        })
     })
 })
 
