@@ -1,16 +1,18 @@
 import express from 'express'
+import cookieParser from "cookie-parser"
 import cors from "cors"
 import {Pool, PoolConfig} from "pg"
 import {success, uuid, z} from "zod"
 import * as argon2 from 'argon2'
 import type {Application,ApplicationInfo} from '../shared/types'
-import { insertUser,insertApplication,deleteApplication,selectAllApplications,getApplication,updateApplication, getHashedPasswordFromUser} from './db-operations'
+import { insertUser,insertApplication,deleteApplication,selectUserApplications,getApplication,updateApplication, getHashedPasswordFromUser} from './db-operations'
 import { randomBytes,createHash } from 'crypto'
 
 export function createApp(pool:Pool){
 
     const app = express()
     app.use(express.json())
+    app.use(cookieParser())
 
     app.use(cors({
     origin:"http://localhost:5173"
@@ -63,22 +65,26 @@ export function createApp(pool:Pool){
         }
     }
 
-    async function findSession(pool:Pool,token:string):Promise<boolean>{
+    async function getUserIdFromSession(pool:Pool,token:string):Promise<string | undefined>{
         const hashedToken = hashToken(token)
         try{
             const result = await pool.query(`
-                SELECT user_id
+                SELECT user_id,expiration_date
                 FROM sessions
-                WHERE token_hash = $1
+                WHERE token_hash = $1;
                 `,
-                [token]
+                [hashedToken]
             )
 
             if(result && result.rowCount == 1){
-                return true
+                if(result.rows[0].expiration_date <= new Date()){
+                    return undefined
+                    // Add timestamp cleanup for expired sessions
+                }
+                return result.rows[0].user_id
             }
             else{
-                return false
+                return undefined
             }
         }
         catch(error){
@@ -173,14 +179,29 @@ export function createApp(pool:Pool){
     })
 
     app.get("/api/applications", async (req,res) => {
-    try{
-        const applications = await selectAllApplications(pool)
-        res.status(200).json(applications)
+        const session: string|undefined = req.cookies.session
+        if(!session){
+            res.status(404).json({message:"Session not found"})
+            return
         }
-    catch(error){
-        console.error("Unexpected database error:",error)
-        res.status(500).send()
-    }
+        try{
+            const userId = await getUserIdFromSession(pool,session)
+            if(!userId){
+                res.status(404).json({message:"Invalid or expired session."})
+                return
+            }
+            const applications = await selectUserApplications(pool,userId)
+            if(applications){
+                res.status(200).json(applications)
+            }
+            else{
+                throw new Error(`Error when selecting applications with userId:${userId}`)
+            }
+            }
+        catch(error){
+            console.error("Unexpected database error:",error)
+            res.status(500).send()
+        }
     })
 
     app.get(`/api/applications/:id`,async (req,res) =>{

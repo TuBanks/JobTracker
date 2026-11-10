@@ -151,7 +151,7 @@ export async function deleteApplication(pool:Pool,id:string): Promise<Applicatio
     }
 }
 
-export async function selectAllApplications(pool:Pool): Promise<Application[]>{
+export async function selectUserApplications(pool:Pool,userId:string): Promise<Application[] | undefined>{
     try{
         const result = await pool.query(
             `SELECT
@@ -160,13 +160,19 @@ export async function selectAllApplications(pool:Pool): Promise<Application[]>{
             position,
             status,
             TO_CHAR(date, 'YYYY-MM-DD') as date
-            FROM applications;
-            `
+            FROM applications
+            WHERE user_id = $1;
+            `,
+            [userId]
         )
 
         console.log(result.rows)
-
-        return result.rows
+        if(result.rowCount){
+            return result.rows
+        }
+        else{
+            return undefined
+        }
     }
     catch(error){
         throw new Error(`SELECT * error`,{cause:error})
