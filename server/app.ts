@@ -1,4 +1,5 @@
 import express from 'express'
+import { Request,Response,NextFunction } from 'express'
 import cookieParser from "cookie-parser"
 import cors from "cors"
 import {Pool, PoolConfig} from "pg"
@@ -92,6 +93,27 @@ export function createApp(pool:Pool){
         }
     }
 
+    async function authenticateSession(req:Request,res:Response,next:NextFunction):Promise<string|undefined>{
+        const session: string|undefined = req.cookies.session
+        if(!session){
+            res.status(404).json({message:"Session not found."})
+            return
+        }
+        try{
+            const userId = await getUserIdFromSession(pool,session)
+            if(!userId){
+                res.status(400).json({message:"Invalid or expired session."})
+                return
+            }
+            res.locals.userId = userId
+            next()
+        }
+        catch(error){
+            throw new Error("Unexpected error when authenticating user by session.",{cause:error})
+        }
+
+    }
+
     app.post("/api/register", async (req,res) =>{
         const result = z.object({
             email:z.string().min(3).toLowerCase(),
@@ -178,18 +200,9 @@ export function createApp(pool:Pool){
         }
     })
 
-    app.get("/api/applications", async (req,res) => {
-        const session: string|undefined = req.cookies.session
-        if(!session){
-            res.status(404).json({message:"Session not found"})
-            return
-        }
+    app.get("/api/applications", authenticateSession,async (req,res) => {
+        const userId:string = res.locals.userId
         try{
-            const userId = await getUserIdFromSession(pool,session)
-            if(!userId){
-                res.status(404).json({message:"Invalid or expired session."})
-                return
-            }
             const applications = await selectUserApplications(pool,userId)
             if(applications){
                 res.status(200).json(applications)
@@ -204,7 +217,8 @@ export function createApp(pool:Pool){
         }
     })
 
-    app.get(`/api/applications/:id`,async (req,res) =>{
+    app.get(`/api/applications/:id`,authenticateSession,async (req,res) =>{
+        const userId = res.locals.userId
         const result = z.object({
             id:z.uuid()
         }).safeParse(req.params)
@@ -212,7 +226,7 @@ export function createApp(pool:Pool){
             const data = result.data
             const id = data.id
             try{
-                const application = await getApplication(pool,data.id)
+                const application = await getApplication(pool,userId,data.id)
 
                 if(application){
                     console.log("GET application success")

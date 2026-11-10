@@ -179,7 +179,7 @@ export async function selectUserApplications(pool:Pool,userId:string): Promise<A
     }
 }
 
-export async function getApplication(pool:Pool,id:string): Promise<Application | undefined>{
+export async function getApplication(pool:Pool,userId:string,id:string): Promise<Application | undefined>{
     try{
         const result = await pool.query(
             `SELECT 
@@ -188,8 +188,10 @@ export async function getApplication(pool:Pool,id:string): Promise<Application |
             position,
             status,
             TO_CHAR(date, 'YYYY-MM-DD') as date 
-            FROM applications WHERE id=$1`,
-            [id]
+            FROM applications 
+            WHERE id=$1 and user_id = $2
+            `,
+            [id,userId]
         )
 
         if(result.rowCount == 1){
