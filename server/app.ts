@@ -249,7 +249,8 @@ export function createApp(pool:Pool){
         }
     })
 
-    app.post("/api/applications", async (req,res) =>{
+    app.post("/api/applications", authenticateSession,async (req,res) =>{
+        const userId = res.locals.userId
         const result = applicationSchema.safeParse(req.body)
         if(result.success){
             const data = result.data
@@ -261,8 +262,13 @@ export function createApp(pool:Pool){
             }
             
             try{
-                const application = await insertApplication(pool,newApplicationInfo)
-                res.status(201).json(application)
+                const application = await insertApplication(pool,userId,newApplicationInfo)
+                if(application){
+                    res.status(201).json(application)
+                }
+                else{
+                    res.status(409).json({message:"Application already exists."})
+                }
             }
             catch(error){
                 console.error("Unexpected database error:",error)

@@ -103,21 +103,27 @@ export async function getHashedPasswordFromUser(pool:Pool,email:string): Promise
     }
 }
 
-export async function insertApplication(pool:Pool,info:ApplicationInfo): Promise<Application>{
+export async function insertApplication(pool:Pool,userId:string,info:ApplicationInfo): Promise<Application | undefined>{
     try{
         const result = await pool.query(
-            `INSERT INTO applications (company,position,status,date) VALUES ($1,$2,$3,$4) 
+            `INSERT INTO applications (userId,company,position,status,date) VALUES ($1,$2,$3,$4,$5) 
+            ON CONFLICT (userId,company,position) DO NOTHING
             RETURNING
             id,
             company,
             position,
             status,
             TO_CHAR(date, 'YYYY-MM-DD') as date;`,
-            [info.company,info.position,info.status,info.date]
+            [userId,info.company,info.position,info.status,info.date]
         )
 
         console.log(result.rows)
-        return result.rows[0]
+        if(result && result.rowCount == 1){
+            return result.rows[0]
+        }
+        else{
+            return undefined
+        }
     }
     catch(error){
         throw new Error(`INSERT error`,{cause:error})
