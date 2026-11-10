@@ -130,21 +130,20 @@ export async function insertApplication(pool:Pool,userId:string,info:Application
     }
 }
 
-export async function deleteApplication(pool:Pool,id:string): Promise<Application | undefined>{
+export async function deleteApplication(pool:Pool,userId:string,id:string): Promise<Application | undefined>{
     try{
         const result = await pool.query(
-            `DELETE FROM applications WHERE id = $1 RETURNING 
+            `DELETE FROM applications WHERE user_id = $1 AND id = $2 RETURNING 
             id,
             company,
             position,
             status,
             TO_CHAR(date,'YYYY-MM-DD') as date;`,
-            [id]
+            [userId,id]
         )
 
-        console.log(`Deleted ${result.rows[0]}`)
-
         if(result.rowCount !== null && result.rowCount !== 0){
+            console.log(`Deleted ${result.rows[0]}`)
             return result.rows[0]
         }
         else{

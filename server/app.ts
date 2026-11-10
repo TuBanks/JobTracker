@@ -284,37 +284,39 @@ export function createApp(pool:Pool){
         
         })
 
-        app.delete("/api/applications/:id",async (req,res) =>{
-        const result = z.object({
-            id: z.uuid()
-        }).safeParse(req.params)
-        if(result.success){
-            const data = result.data
-            const id = data.id
+        app.delete("/api/applications/:id",authenticateSession,async (req,res) =>{
             
-            try{
-            const deletedApplication = await deleteApplication(pool,id)
+            const userId = res.locals.userId
+            const result = z.object({
+                id: z.uuid()
+            }).safeParse(req.params)
+            if(result.success){
+                const data = result.data
+                const id = data.id
+                
+                try{
+                const deletedApplication = await deleteApplication(pool,userId,id)
 
-            if(deletedApplication !== undefined){
-                console.log(deletedApplication)
-                res.status(200).json({
-                id: deletedApplication.id
-                })
+                if(deletedApplication){
+                    console.log(deletedApplication)
+                    res.status(200).json({
+                        id: deletedApplication.id
+                    })
+                }
+                else{
+                    res.status(404).json({message:"Application not found."})
+                }
+                }
+                catch(error){
+                    console.error("Unexpected database error:",error)
+                    res.status(500).send()
+                }
+
             }
             else{
-                res.status(404).send()
+                console.log("Failed to remove application: invalid id format")
+                res.status(400).send()
             }
-            }
-            catch(error){
-            console.error("Unexpected database error:",error)
-            res.status(500).send()
-            }
-
-        }
-        else{
-            console.log("Failed to remove application: invalid id format")
-            res.status(400).send()
-        }
     })
 
     app.patch(`/api/applications/:id`,async (req,res)=>{
