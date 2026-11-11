@@ -106,7 +106,7 @@ export async function getHashedPasswordFromUser(pool:Pool,email:string): Promise
 export async function insertApplication(pool:Pool,userId:string,info:ApplicationInfo): Promise<Application | undefined>{
     try{
         const result = await pool.query(
-            `INSERT INTO applications (userId,company,position,status,date) VALUES ($1,$2,$3,$4,$5) 
+            `INSERT INTO applications (user_id,company,position,status,date) VALUES ($1,$2,$3,$4,$5) 
             ON CONFLICT (userId,company,position) DO NOTHING
             RETURNING
             id,
@@ -194,7 +194,7 @@ export async function getApplication(pool:Pool,userId:string,id:string): Promise
             status,
             TO_CHAR(date, 'YYYY-MM-DD') as date 
             FROM applications 
-            WHERE id=$1 and user_id = $2
+            WHERE id=$1 AND user_id = $2
             `,
             [id,userId]
         )
@@ -212,7 +212,9 @@ export async function getApplication(pool:Pool,userId:string,id:string): Promise
     }
 }
 
-export async function updateApplication(pool:Pool,
+export async function updateApplication(
+    pool:Pool,
+    userId:string,
     id:string,
     fields:{company?:string,position?:string,status?:JobStatus,date?:string}
     ):Promise<Application | undefined>
@@ -221,14 +223,16 @@ export async function updateApplication(pool:Pool,
     try{
         let query = "UPDATE applications SET"
         let numFields = 1
-        const queryParams:(string | undefined)[] = [...Object.values(fields),id]
+        const queryParams:(string | undefined)[] = [...Object.values(fields),id,userId]
         for(let field in fields){
             const setQuery = ` ${field} = $${numFields},`
             query = query.concat(" ",setQuery)
             numFields += 1
         }
         query = query.slice(0,-1)
-        query = query.concat("",` WHERE id = $${numFields} RETURNING
+        query = query.concat("",` 
+            WHERE id = $${numFields} AND user_id = ${numFields+1}
+            RETURNING
             id,
             company,
             position,

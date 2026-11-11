@@ -319,7 +319,8 @@ export function createApp(pool:Pool){
             }
     })
 
-    app.patch(`/api/applications/:id`,async (req,res)=>{
+    app.patch(`/api/applications/:id`,authenticateSession,async (req,res)=>{
+        const userId = res.locals.userId
         const idResult = z.object({
             id:z.uuid()
         }).safeParse(req.params)
@@ -329,7 +330,7 @@ export function createApp(pool:Pool){
             const id = idResult.data.id
             const fields = result.data
             try{
-                const application = await updateApplication(pool,id,fields)
+                const application = await updateApplication(pool,userId,id,fields)
 
                 if(application !== undefined){
                     res.status(200).json(application)
