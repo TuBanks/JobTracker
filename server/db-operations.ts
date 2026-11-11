@@ -11,7 +11,8 @@ export async function createApplicationsTable(pool:Pool){
                 position VARCHAR(200) NOT NULL,
                 status VARCHAR(20) NOT NULL CHECK(status = 'Applied' OR status = 'Interviewing' OR status = 'Rejected' OR status = 'Offer'),
                 date DATE NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE (user_id,company,position)
             );`
         )
         console.log("TABLE (applications) exists or was created.")
@@ -107,7 +108,7 @@ export async function insertApplication(pool:Pool,userId:string,info:Application
     try{
         const result = await pool.query(
             `INSERT INTO applications (user_id,company,position,status,date) VALUES ($1,$2,$3,$4,$5) 
-            ON CONFLICT (userId,company,position) DO NOTHING
+            ON CONFLICT (user_id,company,position) DO NOTHING
             RETURNING
             id,
             company,
@@ -231,7 +232,7 @@ export async function updateApplication(
         }
         query = query.slice(0,-1)
         query = query.concat("",` 
-            WHERE id = $${numFields} AND user_id = ${numFields+1}
+            WHERE id = $${numFields} AND user_id = $${numFields+1}
             RETURNING
             id,
             company,

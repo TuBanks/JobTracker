@@ -96,13 +96,13 @@ export function createApp(pool:Pool){
     async function authenticateSession(req:Request,res:Response,next:NextFunction):Promise<string|undefined>{
         const session: string|undefined = req.cookies.session
         if(!session){
-            res.status(404).json({message:"Session not found."})
+            res.status(404).json({cause:"Session not found."})
             return
         }
         try{
             const userId = await getUserIdFromSession(pool,session)
             if(!userId){
-                res.status(400).json({message:"Invalid or expired session."})
+                res.status(400).json({cause:"Invalid or expired session."})
                 return
             }
             res.locals.userId = userId
@@ -204,15 +204,16 @@ export function createApp(pool:Pool){
         const userId:string = res.locals.userId
         try{
             const applications = await selectUserApplications(pool,userId)
-            if(applications){
-                res.status(200).json(applications)
+            if(!applications){
+                res.status(204).send()
+                return
             }
-            else{
-                throw new Error(`Error when selecting applications with userId:${userId}`)
-            }
+
+            res.status(200).json(applications)
+
             }
         catch(error){
-            console.error("Unexpected database error:",error)
+            console.error("Unexpected database error when getting applications:",error)
             res.status(500).send()
         }
     })
@@ -238,7 +239,7 @@ export function createApp(pool:Pool){
                 }
             }
             catch(error){
-                console.error("Unexpected database error",error)
+                console.error("Unexpected database error when getting application by id:",error)
                 res.status(500).send()
             }
             
@@ -267,11 +268,11 @@ export function createApp(pool:Pool){
                     res.status(201).json(application)
                 }
                 else{
-                    res.status(409).json({message:"Application already exists."})
+                    res.status(409).json({cause:"Application already exists."})
                 }
             }
             catch(error){
-                console.error("Unexpected database error:",error)
+                console.error("Unexpected database error when posting application:",error)
                 res.status(500).send()
             }
             
@@ -304,11 +305,11 @@ export function createApp(pool:Pool){
                     })
                 }
                 else{
-                    res.status(404).json({message:"Application not found."})
+                    res.status(404).json({cause:"Application not found."})
                 }
                 }
                 catch(error){
-                    console.error("Unexpected database error:",error)
+                    console.error("Unexpected database error when deleting application:",error)
                     res.status(500).send()
                 }
 
@@ -341,12 +342,12 @@ export function createApp(pool:Pool){
 
             }
             catch(error){
-                console.error("UPDATE: Unexpected database error when updating.",error)
+                console.error("Unexpected database error when updating.",error)
                 res.status(500).send()
             }
         }
         else{
-            console.log("UPDATE: Invalid patch format, need valid id and fields.")
+            console.log("Invalid patch format, need valid id and fields.")
             res.status(400).send()
         }
     })
