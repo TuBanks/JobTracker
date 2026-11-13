@@ -1,3 +1,10 @@
+2. Update actual applications database to current schema.
 3. Add routes and register/login pages to frontend.
 4. Add containerization
 5. Deploy Application
+
+TESTING:
+- Add more test cases:
+- Missing session
+- Invalid session
+- Etc...

@@ -1,9 +1,8 @@
-import type { JobStatus, Application } from "../../shared/types";
+import type { JobStatus } from "../../shared/types";
 import { useState } from "react";
 
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -36,7 +35,7 @@ import {Spinner} from "@/components/ui/spinner"
 
 import {Button} from "@/components/ui/button"
 import {Badge,badgeVariants} from "@/components/ui/badge"
-import { setDate, toDate } from "date-fns";
+import { toDate } from "date-fns";
 
 type EditFields = {company?:string,position?:string,status?:JobStatus,date?:string}
 
